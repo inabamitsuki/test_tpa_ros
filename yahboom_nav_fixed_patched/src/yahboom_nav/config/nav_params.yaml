@@ -1,0 +1,75 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  yahboom_nav / config / nav_params.yaml
+#
+#  Tuned for wall-mounted flat printed images (person image + AprilTag).
+#  Key changes from default:
+#    - approach_distance_m: 0.35  (closer – flat print needs robot nearer)
+#    - stuck_timeout_sec:   5.0   (tighter – flat wall can fool stuck detector)
+#    - lidar_cluster_min_m: 0.10  (lower – flat print thinner than real human)
+#    - lidar_cluster_max_m: 1.20  (wider  – wall merge can inflate cluster)
+#    - scan_front_only:     true  (only ±60° frontal arc – ignore walls at sides)
+#    - scan_front_half_rad: 1.05  (±60°)
+#    - human_approach_timeout_sec: 8.0  (fallback drop after 8s approaching)
+# ─────────────────────────────────────────────────────────────────────────────
+
+auto_nav_node:
+  ros__parameters:
+
+    # ── Topic remapping ───────────────────────────────────────────────────────
+    cmd_vel_topic:      "/cmd_vel"
+    odom_topic:         "/odom"
+    scan_topic:         "/scan"
+    camera_topic:       "/camera/image_raw"
+    servo_topic:        "/servo_s1"
+    apriltag_topic:     "/apriltag/detections"
+    map_topic:          "/map"
+    initialpose_topic:  "/initialpose"
+    mediapipe_topic:    "/mediapipe/points"
+
+    # ── Navigation ─────────────────────────────────────────────────────────────
+    goal_tolerance_m:    0.25
+    approach_distance_m: 0.35      # closer for wall-mounted flat prints
+    max_linear_speed:    0.20
+    max_angular_speed:   0.80
+    recovery_turn_rad:   1.5708
+    nav_timeout_sec:     60.0
+    stuck_timeout_sec:   5.0       # tighter – flat wall confuses stuck detector
+    human_lost_timeout_sec: 5.0
+
+    # ── LiDAR human detection ─────────────────────────────────────────────────
+    # Widened range: flat A3 print (~0.42 m) can merge with wall return,
+    # making clusters larger than a real human silhouette.
+    lidar_cluster_min_m:  0.10
+    lidar_cluster_max_m:  1.20
+    lidar_detect_range_m: 3.00
+    scan_front_only:      true     # only look in frontal arc – ignore side walls
+    scan_front_half_rad:  1.05     # ±60°
+
+    # ── MediaPipe warning counter ──────────────────────────────────────────────
+    human_warn_max:       10
+    human_warn_threshold: 5
+    # Fallback drop for wall-mounted flat prints:
+    #   The LiDAR reads the wall surface so distance may never reach
+    #   approach_distance_m.  The fallback fires ONLY when ALL three hold:
+    #     1. MediaPipe sees keypoints right now (person in camera frame)
+    #     2. Robot has physically travelled >= human_approach_min_travel_m
+    #        since entering APPROACHING_HUMAN  (proves it actually closed the gap)
+    #     3. Time in state >= human_approach_timeout_sec
+    # Increase human_approach_min_travel_m if the robot is still dropping too
+    # early; decrease if it overshoots and loses the target.
+    human_approach_timeout_sec:  8.0   # seconds  (raised from 6 s)
+    human_approach_min_travel_m: 0.30  # metres robot must travel before fallback fires
+
+    # ── AprilTag ──────────────────────────────────────────────────────────────
+    target_tag_id:       -1        # -1 = accept any tag id
+    tag_approach_dist_m: 0.35
+    tag_size_m:          0.16
+    tag_focal_px:        600.0
+
+    # ── Servo (/servo_s1 angle interface) ─────────────────────────────────────
+    servo_open_angle:   -50
+    servo_closed_angle:   0
+    servo_hold_sec:      2.0
+
+    # ── Mission ───────────────────────────────────────────────────────────────
+    max_cubes: 3
